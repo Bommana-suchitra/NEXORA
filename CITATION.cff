@@ -1,0 +1,71 @@
+cff-version: 1.2.0
+
+title: "TriageSim: A Conversational Emergency Triage Simulation Framework from Structured Electronic Health Records"
+
+message: >
+  If you use this software or dataset in your research, please cite it as below.
+
+authors:
+  - family-names: Srirag
+    given-names: Dipankar
+    affiliation: University of New South Wales
+  - family-names: Nguyen
+    given-names: Quoc Dung
+  - family-names: Joshi
+    given-names: Aditya
+  - family-names: Narasimhan
+    given-names: Padmanesan
+  - family-names: Kanhere
+    given-names: Salil
+
+version: 0.2.0.post1
+
+date-released: 2026-10-09
+
+license: MIT
+
+repository-code: https://github.com/dipankarsrirag/triage-sim
+
+abstract: >
+  TriageSim is an open-source speech and dialogue simulation framework for
+  emergency department triage. It generates paired structured EHR → dialogue →
+  accented speech data, enabling controlled evaluation of speech and language
+  systems in healthcare. The framework supports multi-speaker persona-conditioned
+  dialogue generation, phrase-break annotation for TTS, and accent-varied speech
+  synthesis grounded in real-world clinical vignettes from MIMIC-IV-ED, ATS,
+  and ETEK datasets.
+
+keywords:
+  - emergency medicine
+  - triage
+  - spoken dialogue simulation
+  - speech synthesis
+  - multi-speaker
+  - accented speech
+  - healthcare NLP
+  - large language models
+
+preferred-citation:
+  type: conference-paper
+  title: "TriageSim: A Conversational Emergency Triage Simulation Framework from Structured Electronic Health Records"
+  authors:
+    - family-names: Srirag
+      given-names: Dipankar
+      affiliation: University of New South Wales
+    - family-names: Nguyen
+      given-names: Quoc Dung
+    - family-names: Joshi
+      given-names: Aditya
+    - family-names: Narasimhan
+      given-names: Padmanesan
+    - family-names: Kanhere
+      given-names: Salil
+  collection-title: "Proceedings of Interspeech 2026"
+  conference:
+    name: "Interspeech 2026"
+  start: 1997
+  end: 2001
+  doi: "10.21437/Interspeech.2026-819"
+  issn: "2958-1796"
+  url: "https://www.isca-archive.org/interspeech_2026/srirag26_interspeech.html"
+  year: 2026
