@@ -91,6 +91,30 @@ class VLLM:
         self.defaults = self.llm.model_config.get_diff_sampling_param()
         self.usage: Counter = Counter()
 
+    def stream_chat(self, messages: list[dict], max_new_tokens: int = 200):
+        """Token-level progressive streaming chat completions using Hugging Face TextIteratorStreamer."""
+        from transformers import TextIteratorStreamer
+        from threading import Thread
+        import torch
+
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.llm.device)
+        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+        gen_kwargs = {
+            **inputs,
+            "streamer": streamer,
+            "max_new_tokens": max_new_tokens,
+            "use_cache": True,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "pad_token_id": self.tokenizer.pad_token_id,
+        }
+        thread = Thread(target=self.llm.generate, kwargs=gen_kwargs)
+        thread.start()
+        for token in streamer:
+            yield token
+
     def complete(self, requests: list[Request]) -> list[str | Exception]:
         from vllm import SamplingParams
         from vllm.sampling_params import StructuredOutputsParams
@@ -198,6 +222,30 @@ class OpenRouter:
         except Exception as e:
             return e, usage
 
+    def stream_chat(self, messages: list[dict], max_new_tokens: int = 200):
+        """Token-level progressive streaming chat completions using Hugging Face TextIteratorStreamer."""
+        from transformers import TextIteratorStreamer
+        from threading import Thread
+        import torch
+
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.llm.device)
+        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+        gen_kwargs = {
+            **inputs,
+            "streamer": streamer,
+            "max_new_tokens": max_new_tokens,
+            "use_cache": True,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "pad_token_id": self.tokenizer.pad_token_id,
+        }
+        thread = Thread(target=self.llm.generate, kwargs=gen_kwargs)
+        thread.start()
+        for token in streamer:
+            yield token
+
     def complete(self, requests: list[Request]) -> list[str | Exception]:
         with ThreadPoolExecutor(self.max_workers) as pool:
             done = list(pool.map(self._complete_one, requests))
@@ -277,6 +325,30 @@ class HuggingFace:
         except Exception as e:
             return e, usage
 
+    def stream_chat(self, messages: list[dict], max_new_tokens: int = 200):
+        """Token-level progressive streaming chat completions using Hugging Face TextIteratorStreamer."""
+        from transformers import TextIteratorStreamer
+        from threading import Thread
+        import torch
+
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.llm.device)
+        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+        gen_kwargs = {
+            **inputs,
+            "streamer": streamer,
+            "max_new_tokens": max_new_tokens,
+            "use_cache": True,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "pad_token_id": self.tokenizer.pad_token_id,
+        }
+        thread = Thread(target=self.llm.generate, kwargs=gen_kwargs)
+        thread.start()
+        for token in streamer:
+            yield token
+
     def complete(self, requests: list[Request]) -> list[str | Exception]:
         with ThreadPoolExecutor(self.max_workers) as pool:
             done = list(pool.map(self._complete_one, requests))
@@ -301,6 +373,10 @@ class TransformersLocal:
 
         self.model = model
         self.device = device if torch.cuda.is_available() else "cpu"
+        if self.device == "cuda":
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+
         self.tokenizer = AutoTokenizer.from_pretrained(model, token=token)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -313,7 +389,32 @@ class TransformersLocal:
             device_map="auto" if self.device == "cuda" else None,
             **kwargs,
         )
+        self.llm.eval()
         self.usage = Counter()
+
+    def stream_chat(self, messages: list[dict], max_new_tokens: int = 200):
+        """Token-level progressive streaming chat completions using Hugging Face TextIteratorStreamer."""
+        from transformers import TextIteratorStreamer
+        from threading import Thread
+        import torch
+
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.llm.device)
+        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+        gen_kwargs = {
+            **inputs,
+            "streamer": streamer,
+            "max_new_tokens": max_new_tokens,
+            "use_cache": True,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "pad_token_id": self.tokenizer.pad_token_id,
+        }
+        thread = Thread(target=self.llm.generate, kwargs=gen_kwargs)
+        thread.start()
+        for token in streamer:
+            yield token
 
     def complete(self, requests: list[Request]) -> list[str | Exception]:
         import torch
@@ -328,8 +429,9 @@ class TransformersLocal:
                 input_len = inputs["input_ids"].shape[1]
 
                 gen_kwargs = {
-                    "max_new_tokens": r.sampling.get("max_tokens", 512),
+                    "max_new_tokens": min(r.sampling.get("max_tokens", 350), 380),
                     "pad_token_id": self.tokenizer.pad_token_id,
+                    "use_cache": True,
                 }
                 temp = r.sampling.get("temperature", 0.0)
                 if temp and temp > 0:
